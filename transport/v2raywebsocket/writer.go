@@ -42,6 +42,13 @@ func (w *Writer) WriteBuffer(buffer *buf.Buffer) error {
 		headerLen += 4 // MASK KEY
 	}
 
+	// 确保缓冲区有足够的容量
+	if buffer.Len()+headerLen > cap(buffer.Bytes()) {
+		newBuf := buf.New()
+		newBuf.Write(buffer.Bytes())
+		buffer = newBuf
+	}
+
 	header := buffer.ExtendHeader(headerLen)
 	header[0] = byte(ws.OpBinary) | 0x80
 	if w.isServer {
