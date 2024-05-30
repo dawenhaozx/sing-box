@@ -1323,11 +1323,10 @@ func (r *Router) UpdateDnsRules(rules []option.DNSRule) error {
 		}
 		dnsRules = append(dnsRules, dnsRule)
 	}
-	var tempRules []adapter.DNSRule
 	r.actionLock.Lock()
-	r.dnsRules = tempRules
+	defer r.actionLock.Unlock()
+	tempRules := r.dnsRules
 	r.dnsRules = dnsRules
-	r.actionLock.Unlock()
 	for i, rule := range tempRules {
 		err := rule.Close()
 		if err != nil {
