@@ -98,3 +98,5 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
 )
+
+replace github.com/sagernet/sing v0.5.0-alpha.7 => github.com/dawenhaozx/sing v0.0.0-20240530142615-59154e78fd88
