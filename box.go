@@ -403,3 +403,7 @@ func (s *Box) Close() error {
 func (s *Box) Router() adapter.Router {
 	return s.router
 }
+
+func (b *Box) LogFactory() log.Factory {
+	return b.logFactory
+}

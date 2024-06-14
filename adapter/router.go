@@ -6,8 +6,9 @@ import (
 	"net/netip"
 
 	"github.com/sagernet/sing-box/common/geoip"
-	"github.com/sagernet/sing-dns"
-	"github.com/sagernet/sing-tun"
+	"github.com/sagernet/sing-box/option"
+	dns "github.com/sagernet/sing-dns"
+	tun "github.com/sagernet/sing-tun"
 	"github.com/sagernet/sing/common/control"
 	N "github.com/sagernet/sing/common/network"
 	"github.com/sagernet/sing/common/x/list"
@@ -62,6 +63,12 @@ type Router interface {
 	SetV2RayServer(server V2RayServer)
 
 	ResetNetwork() error
+
+	// for v2bx
+	AddInbound(in Inbound) error
+	DelInbound(tag string) error
+	UpdateDnsRules(rules []option.DNSRule) error
+	GetCtx() context.Context
 }
 
 func ContextWithRouter(ctx context.Context, router Router) context.Context {

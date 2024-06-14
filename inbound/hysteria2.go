@@ -4,6 +4,7 @@ package inbound
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -30,6 +31,8 @@ type Hysteria2 struct {
 	tlsConfig    tls.ServerConfig
 	service      *hysteria2.Service[int]
 	userNameList []string
+	uidToUuid    map[int]string
+	uuidToUid    map[string]int
 }
 
 func NewHysteria2(ctx context.Context, router adapter.Router, logger log.ContextLogger, tag string, options option.Hysteria2InboundOptions) (*Hysteria2, error) {
@@ -113,6 +116,8 @@ func NewHysteria2(ctx context.Context, router adapter.Router, logger log.Context
 	userList := make([]int, 0, len(options.Users))
 	userNameList := make([]string, 0, len(options.Users))
 	userPasswordList := make([]string, 0, len(options.Users))
+	uidToUuid := make(map[int]string, len(options.Users))
+	uuidToUid := make(map[string]int, len(options.Users))
 	for index, user := range options.Users {
 		userList = append(userList, index)
 		userNameList = append(userNameList, user.Name)
@@ -121,6 +126,8 @@ func NewHysteria2(ctx context.Context, router adapter.Router, logger log.Context
 	service.UpdateUsers(userList, userPasswordList)
 	inbound.service = service
 	inbound.userNameList = userNameList
+	inbound.uidToUuid = uidToUuid
+	inbound.uuidToUid = uuidToUid
 	return inbound, nil
 }
 
@@ -129,12 +136,19 @@ func (h *Hysteria2) newConnection(ctx context.Context, conn net.Conn, metadata a
 	metadata = h.createMetadata(conn, metadata)
 	h.logger.InfoContext(ctx, "inbound connection from ", metadata.Source)
 	userID, _ := auth.UserFromContext[int](ctx)
-	if userName := h.userNameList[userID]; userName != "" {
-		metadata.User = userName
-		h.logger.InfoContext(ctx, "[", userName, "] inbound connection to ", metadata.Destination)
+	if _, found := h.uidToUuid[userID]; found {
+		if userName := h.uidToUuid[userID]; userName != "" {
+			metadata.User = userName
+			h.logger.InfoContext(ctx, "[", userName, "] inbound connection to ", metadata.Destination)
+		} else {
+			h.logger.InfoContext(ctx, "inbound connection to ", metadata.Destination)
+		}
 	} else {
-		h.logger.InfoContext(ctx, "inbound connection to ", metadata.Destination)
+		h.logger.WarnContext(ctx, "no valid user")
+		conn.Close()
+		return fmt.Errorf("no valid user for connection")
 	}
+
 	return h.router.RouteConnection(ctx, conn, metadata)
 }
 
@@ -143,12 +157,19 @@ func (h *Hysteria2) newPacketConnection(ctx context.Context, conn N.PacketConn, 
 	metadata = h.createPacketMetadata(conn, metadata)
 	h.logger.InfoContext(ctx, "inbound packet connection from ", metadata.Source)
 	userID, _ := auth.UserFromContext[int](ctx)
-	if userName := h.userNameList[userID]; userName != "" {
-		metadata.User = userName
-		h.logger.InfoContext(ctx, "[", userName, "] inbound packet connection to ", metadata.Destination)
+	if _, found := h.uidToUuid[userID]; found {
+		if userName := h.uidToUuid[userID]; userName != "" {
+			metadata.User = userName
+			h.logger.InfoContext(ctx, "[", userName, "] inbound packet connection to ", metadata.Destination)
+		} else {
+			h.logger.InfoContext(ctx, "inbound packet connection to ", metadata.Destination)
+		}
 	} else {
-		h.logger.InfoContext(ctx, "inbound packet connection to ", metadata.Destination)
+		h.logger.WarnContext(ctx, "no valid user")
+		conn.Close()
+		return fmt.Errorf("no valid user for connection")
 	}
+
 	return h.router.RoutePacketConnection(ctx, conn, metadata)
 }
 
