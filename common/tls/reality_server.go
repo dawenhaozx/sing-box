@@ -7,10 +7,10 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/hex"
-	"fmt"
 	"net"
 	"time"
 
+	utls "github.com/metacubex/utls"
 	"github.com/sagernet/sing-box/common/dialer"
 	"github.com/sagernet/sing-box/log"
 	"github.com/sagernet/sing-box/option"
@@ -18,8 +18,6 @@ import (
 	M "github.com/sagernet/sing/common/metadata"
 	N "github.com/sagernet/sing/common/network"
 	"github.com/sagernet/sing/common/ntp"
-
-	utls "github.com/metacubex/utls"
 )
 
 var _ ServerConfigCompat = (*RealityServerConfig)(nil)
@@ -75,12 +73,8 @@ func NewRealityServer(ctx context.Context, logger log.Logger, options option.Inb
 	}
 
 	tlsConfig.SessionTicketsDisabled = true
-	tlsConfig.Log = func(format string, v ...any) {
-		if logger != nil {
-			logger.Trace(fmt.Sprintf(format, v...))
-		}
-	}
 	tlsConfig.Type = N.NetworkTCP
+	tlsConfig.Xver = options.Reality.Xver
 	tlsConfig.Dest = options.Reality.Handshake.ServerOptions.Build().String()
 
 	tlsConfig.ServerNames = map[string]bool{options.ServerName: true}
